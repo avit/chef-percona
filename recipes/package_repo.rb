@@ -15,9 +15,14 @@ when "debian"
     pin_priority "1001"
   end
 
+  repo_name = case node['lsb']['codename']
+              when 'trusty' then 'saucy'
+              else node['lsb']['codename']
+              end
+
   apt_repository "percona" do
     uri node['percona']['apt_uri']
-    distribution node['lsb']['codename']
+    distribution repo_name
     components [ "main" ]
     keyserver node['percona']['apt_keyserver']
     key node['percona']['apt_key']
