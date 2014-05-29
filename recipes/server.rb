@@ -1,3 +1,8 @@
+#
+# Cookbook Name:: percona
+# Recipe:: server
+#
+
 include_recipe "percona::package_repo"
 
 # install packages
@@ -11,7 +16,7 @@ when "rhel"
   # Need to remove this to avoid conflicts
   package "mysql-libs" do
     action :remove
-    not_if "rpm -qa | grep #{node['percona']['server']['shared_pkg']}"
+    not_if "rpm -qa | grep #{node["percona"]["server"]["shared_pkg"]}"
   end
 
   # we need mysqladmin
@@ -22,13 +27,12 @@ when "rhel"
   end
 end
 
-include_recipe "percona::configure_server"
+unless node["percona"]["skip_configure"]
+  include_recipe "percona::configure_server"
+end
 
 # access grants
 unless node["percona"]["skip_passwords"]
   include_recipe "percona::access_grants"
-end
-
-unless node["percona"]["skip_passwords"]
   include_recipe "percona::replication"
 end

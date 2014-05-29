@@ -2,22 +2,6 @@
 # Cookbook Name:: percona
 # Attributes:: default
 #
-# Author:: Phil Cohen <github@phlippers.net>
-#
-# Copyright 2011, Phil Cohen
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
 ::Chef::Node.send(:include, Opscode::OpenSSL::Password)
 
@@ -38,8 +22,8 @@ when "rhel"
   default["percona"]["server"]["default_storage_engine"]        = "innodb"
   default["percona"]["server"]["includedir"]                    = ""
   default["percona"]["server"]["pidfile"]                       = "/var/lib/mysql/mysqld.pid"
-  default["percona"]["server"]["package"]                       = "Percona-Server-server-#{version.tr('.', '')}"
-  default["percona"]["server"]["shared_pkg"]                    = "Percona-Server-shared-#{version.tr('.', '')}"
+  default["percona"]["server"]["package"]                       = "Percona-Server-server-#{version.tr(".", "")}"
+  default["percona"]["server"]["shared_pkg"]                    = "Percona-Server-shared-#{version.tr(".", "")}"
 end
 
 # Cookbook Settings
@@ -47,6 +31,7 @@ default["percona"]["main_config_file"]                          = "/etc/my.cnf"
 default["percona"]["keyserver"]                                 = "keys.gnupg.net"
 default["percona"]["encrypted_data_bag"]                        = "passwords"
 default["percona"]["skip_passwords"]                            = false
+default["percona"]["skip_configure"]                            = false
 
 # Start percona server on boot
 default["percona"]["server"]["enable"]                          = true
@@ -55,10 +40,11 @@ default["percona"]["server"]["enable"]                          = true
 default["percona"]["server"]["role"]                            = "standalone"
 default["percona"]["server"]["username"]                        = "mysql"
 default["percona"]["server"]["datadir"]                         = "/var/lib/mysql"
+default["percona"]["server"]["logdir"]                          = "/var/log/mysql"
 default["percona"]["server"]["tmpdir"]                          = "/tmp"
 default["percona"]["server"]["debian_username"]                 = "debian-sys-maint"
 default["percona"]["server"]["nice"]                            = 0
-default["percona"]["server"]["open_files_limit"]                = 16384
+default["percona"]["server"]["open_files_limit"]                = 16_384
 default["percona"]["server"]["hostname"]                        = "localhost"
 default["percona"]["server"]["basedir"]                         = "/usr"
 default["percona"]["server"]["port"]                            = 3306
@@ -69,6 +55,7 @@ default["percona"]["server"]["skip_name_resolve"]               = false
 default["percona"]["server"]["skip_external_locking"]           = true
 default["percona"]["server"]["net_read_timeout"]                = 120
 default["percona"]["server"]["connect_timeout"]                 = 10
+default["percona"]["server"]["wait_timeout"]                    = 28_800
 default["percona"]["server"]["old_passwords"]                   = 0
 default["percona"]["server"]["bind_address"]                    = "127.0.0.1"
 %w[debian_password root_password].each do |attribute|
@@ -90,7 +77,7 @@ default["percona"]["server"]["join_buffer_size"]                = "8M"
 default["percona"]["server"]["thread_cache_size"]               = 16
 default["percona"]["server"]["back_log"]                        = 50
 default["percona"]["server"]["max_connections"]                 = 30
-default["percona"]["server"]["max_connect_errors"]              = 9999999
+default["percona"]["server"]["max_connect_errors"]              = 9_999_999
 default["percona"]["server"]["table_cache"]                     = 8192
 default["percona"]["server"]["group_concat_max_len"]            = 4096
 
@@ -156,6 +143,7 @@ unless attribute?(node["percona"]["backup"]["password"])
 end
 
 # XtraDB Cluster Settings
+default["percona"]["cluster"]["package"]                        = "percona-xtradb-cluster-55"
 default["percona"]["cluster"]["binlog_format"]                  = "ROW"
 default["percona"]["cluster"]["wsrep_provider"]                 = "/usr/lib64/libgalera_smm.so"
 default["percona"]["cluster"]["wsrep_cluster_address"]          = ""
@@ -163,5 +151,11 @@ default["percona"]["cluster"]["wsrep_slave_threads"]            = 2
 default["percona"]["cluster"]["wsrep_cluster_name"]             = ""
 default["percona"]["cluster"]["wsrep_sst_method"]               = "rsync"
 default["percona"]["cluster"]["wsrep_node_name"]                = ""
+default["percona"]["cluster"]["wsrep_notify_cmd"]               = ""
+
+# These both are used to build wsrep_sst_receive_address
+default["percona"]["cluster"]["wsrep_sst_receive_interface"]    = nil # Works like node["percona"]["server"]["bind_to"]
+default["percona"]["cluster"]["wsrep_sst_receive_port"]         = "4444"
+
 default["percona"]["cluster"]["innodb_locks_unsafe_for_binlog"] = 1
 default["percona"]["cluster"]["innodb_autoinc_lock_mode"]       = 2

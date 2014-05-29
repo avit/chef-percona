@@ -1,17 +1,26 @@
-client = default["percona"]["client"]
-version = node["percona"]["version"]
+#
+# Cookbook Name:: percona
+# Attributes:: client
+#
+
+version = value_for_platform_family(
+  "debian" => node["percona"]["version"],
+  "rhel" => node["percona"]["version"].tr(".", "")
+)
 
 case node["platform_family"]
 when "debian"
-  if node["lsb"]["codename"] == "trusty"
-    abi_version = case version
-                  when "5.5" then "18"
-                  when "5.6" then "18.1"
-                  end
-  end
-  client["packages"] = ["libperconaserverclient#{abi_version}-dev",
-                        "percona-server-client"]
+  abi_version = case version
+                when "5.5" then "18"
+                when "5.6" then "18.1"
+                else ""
+                end
+
+  default["percona"]["client"]["packages"] = %W[
+    libperconaserverclient#{abi_version}-dev percona-server-client-#{version}
+  ]
 when "rhel"
-  client["packages"] = ["Percona-Server-devel-#{version.tr(',', '')}",
-                        "Percona-Server-client-#{version.tr(',', '')}"]
+  default["percona"]["client"]["packages"] = %W[
+    Percona-Server-devel-#{version} Percona-Server-client-#{version}
+  ]
 end

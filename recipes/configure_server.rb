@@ -1,3 +1,8 @@
+#
+# Cookbook Name:: percona
+# Recipe:: configure_server
+#
+
 percona = node["percona"]
 server  = percona["server"]
 conf    = percona["conf"]
@@ -7,10 +12,10 @@ mysqld  = (conf && conf["mysqld"]) || {}
 passwords = EncryptedPasswords.new(node, percona["encrypted_data_bag"])
 
 template "/root/.my.cnf" do
-  variables(:root_password => passwords.root_password)
+  variables(root_password: passwords.root_password)
   owner "root"
   group "root"
-  mode 0600
+  mode "0600"
   source "my.cnf.root.erb"
 end
 
@@ -28,6 +33,7 @@ if server["bind_to"]
 end
 
 datadir = mysqld["datadir"] || server["datadir"]
+logdir  = mysqld["logdir"] || server["logdir"]
 tmpdir  = mysqld["tmpdir"] || server["tmpdir"]
 user    = mysqld["username"] || server["username"]
 
@@ -35,7 +41,7 @@ user    = mysqld["username"] || server["username"]
 directory "/etc/mysql" do
   owner "root"
   group "root"
-  mode 0755
+  mode "0755"
 end
 
 # setup the data directory
@@ -43,7 +49,13 @@ directory datadir do
   owner user
   group user
   recursive true
-  action :create
+end
+
+# setup the log directory
+directory logdir do
+  owner user
+  group user
+  recursive true
 end
 
 # setup the tmp directory
@@ -51,12 +63,11 @@ directory tmpdir do
   owner user
   group user
   recursive true
-  action :create
 end
 
 # define the service
 service "mysql" do
-  supports :restart => true
+  supports restart: true
   action server["enable"] ? :enable : :disable
 end
 
@@ -71,24 +82,29 @@ template percona["main_config_file"] do
   source "my.cnf.#{conf ? "custom" : server["role"]}.erb"
   owner "root"
   group "root"
-  mode 0644
-  notifies :restart, "service[mysql]", :immediately if node["percona"]["auto_restart"]
+  mode "0744"
+
+  if node["percona"]["auto_restart"]
+    notifies :restart, "service[mysql]", :immediately
+  end
 end
 
 # now let's set the root password only if this is the initial install
 execute "Update MySQL root password" do
-  command "mysqladmin --user=root --password='' password '#{passwords.root_password}'"
+  root_pw = passwords.root_password
+  command "mysqladmin --user=root --password='' password '#{root_pw}'"
   not_if "test -f /etc/mysql/grants.sql"
 end
 
 # setup the debian system user config
 template "/etc/mysql/debian.cnf" do
   source "debian.cnf.erb"
-  variables(:debian_password => passwords.debian_password)
+  variables(debian_password: passwords.debian_password)
   owner "root"
   group "root"
-  mode 0640
-  notifies :restart, "service[mysql]", :immediately if node["percona"]["auto_restart"]
-
-  only_if { node["platform_family"] == "debian" }
+  mode "0640"
+  if node["percona"]["auto_restart"]
+    notifies :restart, "service[mysql]", :immediately
+  end
+  only_if { platform_family?("debian") }
 end
